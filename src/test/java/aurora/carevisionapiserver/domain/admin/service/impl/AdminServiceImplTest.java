@@ -1,6 +1,9 @@
 package aurora.carevisionapiserver.domain.admin.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -54,26 +57,27 @@ class AdminServiceImplTest extends IntegrationTestSupport {
         Admin admin = createAdmin("admin1", department);
         adminRepository.save(admin);
 
-        Nurse nurse1 = createNurse("nurse1", true, department);
-        Nurse nurse2 = createNurse("nurse2", false, department);
-        Nurse nurse3 = createNurse("nurse3", false, department);
-        Nurse nurse4 = createNurse("nurse4", true, department);
-
-        nurseRepository.saveAll(List.of(nurse1, nurse2, nurse3, nurse4));
+        Nurse nurse1 = createNurse(1L, "nurse1", department);
+        Nurse nurse2 = createNurse(2L, "nurse2", department);
+        List<Nurse> nurses = List.of(nurse1, nurse2);
+        nurseRepository.saveAll(nurses);
 
         // when
+        when(nurseService.getActivatedNursesByAdmin(any(Admin.class))).thenReturn(nurses);
         List<NursePreviewResponse> response = adminService.getActivatedNurses(admin);
 
         // then
-        assertThat(response).hasSize(2).extracting("username").contains("nurse1", "nurse4");
+        assertThat(response)
+                .hasSize(2)
+                .extracting("id", "name")
+                .contains(
+                        tuple(1L, "nurse1"),
+                        tuple(2L, "nurse2")
+                );
     }
 
-    private static Nurse createNurse(String username, boolean isActivated, Department department) {
-        return Nurse.builder()
-                .username(username)
-                .isActivated(isActivated)
-                .department(department)
-                .build();
+    private static Nurse createNurse(Long id, String name, Department department) {
+        return Nurse.builder().id(id).name(name).department(department).build();
     }
 
     private static Admin createAdmin(String username, Department department) {
